@@ -24,5 +24,11 @@ func containsSensitiveData(s string) (bool, string) {
 		return true, "contains IP address"
 	}
 
+	for _, re := range customSensitiveRegexps {
+		if re.MatchString(s) {
+			return true, "matches custom sensitive pattern " + re.String()
+		}
+	}
+
 	return false, ""
 }

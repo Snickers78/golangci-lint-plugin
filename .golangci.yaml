@@ -1,0 +1,19 @@
+version: "2"
+
+linters:
+  enable:
+    - logrules
+
+  settings:
+    custom:
+      logrules:
+        type: goplugin
+        path: ./example.so
+        description: "Checks log format, language and sensitive data"
+        original-url: github.com/snickers78/golangci-lint-plugin
+        settings:
+          check_lowercase: true
+          check_english_only: true
+          check_special_symbols: true
+          check_sensitive_data: true
+          

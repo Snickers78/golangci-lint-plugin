@@ -6,5 +6,6 @@ import (
 )
 
 func New(conf any) ([]*analysis.Analyzer, error) {
+	rules.ApplySettings(conf)
 	return []*analysis.Analyzer{rules.LogAnalyzer}, nil
 }

@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-func containsSensitiveIdentifier(expr ast.Expr) (bool, string) {
-	var found string
+func containsSensitiveIdentifier(expr ast.Expr) (bool, string, *ast.Ident) {
+	var found *ast.Ident
 
 	ast.Inspect(expr, func(n ast.Node) bool {
 		ident, ok := n.(*ast.Ident)
@@ -15,9 +15,11 @@ func containsSensitiveIdentifier(expr ast.Expr) (bool, string) {
 		}
 
 		name := strings.ToLower(ident.Name)
-		for _, sub := range []string{"token", "password", "secret", "apikey"} {
+		cfg := GetConfig()
+		base := []string{"token", "password", "secret", "apikey"}
+		for _, sub := range append(base, cfg.CustomSensitiveSubstrs...) {
 			if strings.Contains(name, sub) {
-				found = ident.Name
+				found = ident
 				return false
 			}
 		}
@@ -25,8 +27,8 @@ func containsSensitiveIdentifier(expr ast.Expr) (bool, string) {
 		return true
 	})
 
-	if found != "" {
-		return true, found
+	if found != nil {
+		return true, found.Name, found
 	}
-	return false, ""
+	return false, "", nil
 }

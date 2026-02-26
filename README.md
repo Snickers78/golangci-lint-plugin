@@ -5,7 +5,7 @@
 - **формат** сообщения (первая буква в нижнем регистре);
 - **язык** сообщения (только английский);
 - отсутствие **спецсимволов и эмодзи**;
-- отсутствие **чувствительных данных** (ключевые слова, e‑mail, номера карт, IP, значения переменных `token/password/...`).
+- отсутствие **чувствительных данных** (ключевые слова, e‑mail, номера карт, IP, значения переменных `token/password/...` и т.д., включая настраиваемые паттерны).
 
 Правила можно использовать:
 
@@ -64,13 +64,12 @@ go run ./cmd ./testdata
 ```bash
 cd /path/to/golangci-lint-plugin
 
-# при необходимости
 sudo apt update && sudo apt install -y build-essential
 
-go build -buildmode=plugin -o ./plugin/logrules.so ./plugin
+go build -buildmode=plugin -o ./plugin/example.so ./plugin
 ```
 
-В результате будет создан файл `plugin/logrules.so`.
+В результате будет создан файл `plugin/example.so`.
 
 ### 2. Настройка `.golangci.yaml`
 
@@ -87,13 +86,24 @@ linters:
     custom:
       logrules:
         type: goplugin
-        path: ./plugin/logrules.so
+        path: ./plugin/example.so
         description: "Checks log format, language and sensitive data"
         original-url: github.com/snickers78/golangci-lint-plugin
+        settings:
+          check_lowercase: true
+          check_english_only: true
+          check_special_symbols: true
+          check_sensitive_data: true
+          sensitive_regexps:
+            - "(?i)secret_[a-z0-9]+"
+          sensitive_ident_substrings:
+            - "jwt"
+            - "refresh_token"
 ```
 
 - `logrules` — имя кастомного линтера в `golangci-lint`;
-- `path` — путь до собранного `.so`.
+- `path` — путь до собранного `.so`;
+- `settings` — конфигурация правил (см. раздел «Конфигурация» ниже).
 
 ### 3. Запуск `golangci-lint`
 
@@ -103,7 +113,21 @@ linters:
 golangci-lint run ./...
 ```
 
-Если всё настроено корректно, вы увидите репорты с идентификатором вашего кастомного линтера (например, `logrules`) с сообщениями о нарушениях.
+Если всё настроено корректно, вы увидите репорты с идентификатором вашего кастомного линтера (например, `logrules`) с сообщениями о нарушениях. Для автоматического исправления требуется указать флаг --fix.
+
+Если у вас есть локально собранный бинарник `golangci-bin`:
+
+- из каталога, где лежит бинарник (Linux / WSL / macOS):
+
+  ```bash
+  ./golangci-bin run ./...
+  ```
+
+- из PowerShell на Windows (если файл называется `golangci-bin.exe`):
+
+  ```powershell
+  .\golangci-bin.exe run ./...
+  ```
 
 ---
 
@@ -130,7 +154,8 @@ golangci-lint run ./...
   - e‑mail адреса;
   - «похожие на» номера банковских карт;
   - IP‑адреса;
-  - идентификаторы переменных с подстроками `token`, `password`, `secret`, `apikey` и т.п. в аргументах логов.
+  - идентификаторы переменных с подстроками `token`, `password`, `secret`, `apikey` и т.п. в аргументах логов;
+  - пользовательские паттерны из конфигурации (`sensitive_regexps`, `sensitive_ident_substrings`).
 
   Примеры:
 
@@ -154,3 +179,30 @@ go test ./rules/...
 
 - `go test ./...` перед коммитом.
 
+---
+
+## Конфигурация и авто‑исправление
+
+### Конфигурация правил
+
+Поддерживаются следующие настройки (через `settings` в `.golangci.yaml` или отдельный конфиг для CLI):
+
+- `check_lowercase` (`bool`) — включить/выключить проверку регистра первой буквы;
+- `check_english_only` (`bool`) — включить/выключить проверку, что сообщение только на английском;
+- `check_special_symbols` (`bool`) — включить/выключить проверку спецсимволов и эмодзи;
+- `check_sensitive_data` (`bool`) — включить/выключить все проверки на чувствительные данные;
+- `sensitive_regexps` (`[]string`) — дополнительные регулярные выражения для поиска чувствительных данных в тексте;
+- `sensitive_ident_substrings` (`[]string`) — дополнительные подстроки для поиска чувствительных идентификаторов (например, `jwt`, `refresh_token`).
+
+### Авто‑исправление (SuggestedFixes)
+
+Линтер генерирует SuggestedFixes:
+
+- для правила про регистр первой буквы — замена строки на вариант с первой буквой в нижнем регистре;
+- для чувствительных идентификаторов в логах — замена имени переменной на маску `"***"`.
+
+В `golangci-lint` эти правки можно применить так:
+
+```bash
+golangci-lint run --fix ./...
+```

@@ -28,8 +28,4 @@ func main() {
 	logger.Info("server started")
 	slog.Warn("connection failed")
 
-	log.Println("token validated")     // допустимо
-	log.Println("token: " + token)     // будет подсвечено как чувствительная информация
-	slog.Info("user password is here") // чувствительные данные
-	slog.Info("contact me at a@b.com") // чувствительные данные (email)
 }
